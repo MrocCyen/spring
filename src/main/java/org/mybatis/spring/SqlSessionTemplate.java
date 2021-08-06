@@ -425,15 +425,25 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
   private class SqlSessionInterceptor implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      /**
+       * todo
+       * 如果当前存在事务，sqlSession可以从线程中获取
+       * 否则创建一个sqlSession
+       * todo
+       * 如果是新建事务，会将sqlSession保存到线程中
+       */
       SqlSession sqlSession = getSqlSession(
           SqlSessionTemplate.this.sqlSessionFactory,
           SqlSessionTemplate.this.executorType,
           SqlSessionTemplate.this.exceptionTranslator);
       try {
+        //调用sqlSession方法
         Object result = method.invoke(sqlSession, args);
+        //todo 当前这个sqlSession不是spring管理的，也就是不是当前线程中sqlSession，则自动提交事务
         if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
           // force commit even on non-dirty sessions because some databases require
           // a commit/rollback before calling close()
+          //强制提交事务
           sqlSession.commit(true);
         }
         return result;
